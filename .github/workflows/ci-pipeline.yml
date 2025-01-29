@@ -9,7 +9,7 @@ on:
 
 env:
   PORT: 5001
-  IMAGE: ${{vars.IMAGE}}:${{github.sha}}
+  IMAGE: ${{secrets.IMAGE}}:${{github.sha}}
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -35,7 +35,7 @@ jobs:
         id: gcp-auth
         uses: google-github-actions/auth@v0
         with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v0
@@ -43,8 +43,8 @@ jobs:
       - name: Authenticate for Docker Hub
         id: docker-auth
         env:
-          D_USER: ${{secrets.DOCKER_USER}}
-          D_PASS: ${{secrets.DOCKER_PASSWORD}}
+          DOCKER_USER: ${{secrets.DOCKER_USER}}
+          DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
         run: |
           docker login -u $D_USER -p $D_PASS
       - name: Build and tag Image
@@ -59,8 +59,8 @@ jobs:
       - name: Deploy to GCP Run - Production environment (If a new release was published from the master branch)
         if: github.event_name == 'release' && github.event.action == 'published' && github.event.release.target_commitish == 'main'
         run: |
-          gcloud run deploy ${{vars.GCR_PROJECT_NAME}} \
-          --region ${{vars.GCR_REGION}} \
+          gcloud run deploy ${{secrets.GCR_PROJECT_NAME}} \
+          --region ${{secrets.GCR_REGION}} \
           --image ${{env.IMAGE}} \
           --platform "managed" \
           --allow-unauthenticated \
@@ -70,7 +70,7 @@ jobs:
         run: |
           echo "Deploying to staging environment"
           # Deploy service with to staging environment
-          gcloud run deploy ${{vars.GCR_STAGING_PROJECT_NAME}} \
+          gcloud run deploy ${{secrets.GCR_STAGING_PROJECT_NAME}} \
           --region ${{vars.GCR_REGION}} \
           --image ${{env.IMAGE}} \
           --platform "managed" \
